@@ -1,63 +1,78 @@
 module tanhPWL(
-	input [15:0] x;
-	output wire [15:0] y;
+	input clk,
+	input rst,
+	input [15:0] x,
+	output wire [15:0] y
 );
 
-reg [4:0] slope;
-reg [5:0] bias;
-reg [15:0] x_delta;
-reg zero;
-assign y = (zero)? 0: (x_delta>>slope)+bias;
+reg [4:0] slope, slope_stage_reg;
+reg [5:0] bias, bias_stage_reg;
+reg [15:0] x_delta, x_stage_reg;
+reg zero, zero_stage_reg;
+always @(posedge clk) begin
+	if(~rst) begin
+		slope_stage_reg <= 0;
+		bias_stage_reg <= 0;
+		x_stage_reg <= 0;
+		zero_stage_reg <= 0;
+	end else begin
+		slope_stage_reg <= slope;
+		bias_stage_reg <= bias;
+		x_stage_reg <= (x - x_delta);
+		zero_stage_reg <= zero;
+	end
+end
+assign y = (zero_stage_reg)? 0: (x_stage_reg >> slope_stage_reg) + bias_stage_reg;
 /**************** Compare and LUT *****************/
 always @(*) begin
 	if(x < 16'hf800) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hf800;
+		x_delta = 16'hf800;
 	end else 	if(x < 16'hfd95) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hf800;
+		x_delta = 16'hf800;
 	end else 	if(x < 16'hfe26) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'hfd95;
+		x_delta = 16'hfd95;
 	end else 	if(x < 16'hfe85) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = x-16'hfe26;
+		x_delta = 16'hfe26;
 	end else 	if(x < 16'hfeed) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = x-16'hfe85;
+		x_delta = 16'hfe85;
 	end else 	if(x < 16'hff73) begin
 		slope = 16'h1;
 		zero = 0;
-		x_delta = x-16'hfeed;
+		x_delta = 16'hfeed;
 	end else 	if(x < 16'h8d) begin
 		slope = 16'h0;
 		zero = 0;
-		x_delta = x-16'hff73;
+		x_delta = 16'hff73;
 	end else 	if(x < 16'h113) begin
 		slope = 16'h1;
 		zero = 0;
-		x_delta = x-16'h8d;
+		x_delta = 16'h8d;
 	end else 	if(x < 16'h17b) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = x-16'h113;
+		x_delta = 16'h113;
 	end else 	if(x < 16'h1da) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = x-16'h17b;
+		x_delta = 16'h17b;
 	end else 	if(x < 16'h26b) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'h1da;
+		x_delta = 16'h1da;
 	end else begin
 		slope = 16'h0;
 		zero = 0;
-		x_delta = x-16'h26b;
+		x_delta = 16'h26b;
 	end
 
 	if(x < 16'hf800) begin

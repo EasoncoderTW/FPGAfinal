@@ -1,55 +1,70 @@
 module sigmoidPWL(
-	input [15:0] x;
-	output wire [15:0] y;
+	input clk,
+	input rst,
+	input [15:0] x,
+	output wire [15:0] y
 );
 
-reg [4:0] slope;
-reg [5:0] bias;
-reg [15:0] x_delta;
-reg zero;
-assign y = (zero)? 0: (x_delta>>slope)+bias;
+reg [4:0] slope, slope_stage_reg;
+reg [5:0] bias, bias_stage_reg;
+reg [15:0] x_delta, x_stage_reg;
+reg zero, zero_stage_reg;
+always @(posedge clk) begin
+	if(~rst) begin
+		slope_stage_reg <= 0;
+		bias_stage_reg <= 0;
+		x_stage_reg <= 0;
+		zero_stage_reg <= 0;
+	end else begin
+		slope_stage_reg <= slope;
+		bias_stage_reg <= bias;
+		x_stage_reg <= (x - x_delta);
+		zero_stage_reg <= zero;
+	end
+end
+assign y = (zero_stage_reg)? 0: (x_stage_reg >> slope_stage_reg) + bias_stage_reg;
 /**************** Compare and LUT *****************/
 always @(*) begin
 	if(x < 16'hf800) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hf800;
+		x_delta = 16'hf800;
 	end else 	if(x < 16'hfbe0) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hf800;
+		x_delta = 16'hf800;
 	end else 	if(x < 16'hfd0a) begin
 		slope = 16'h5;
 		zero = 0;
-		x_delta = x-16'hfbe0;
+		x_delta = 16'hfbe0;
 	end else 	if(x < 16'hfddb) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'hfd0a;
+		x_delta = 16'hfd0a;
 	end else 	if(x < 16'hfee7) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = x-16'hfddb;
+		x_delta = 16'hfddb;
 	end else 	if(x < 16'h119) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = x-16'hfee7;
+		x_delta = 16'hfee7;
 	end else 	if(x < 16'h225) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = x-16'h119;
+		x_delta = 16'h119;
 	end else 	if(x < 16'h2f6) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'h225;
+		x_delta = 16'h225;
 	end else 	if(x < 16'h420) begin
 		slope = 16'h5;
 		zero = 0;
-		x_delta = x-16'h2f6;
+		x_delta = 16'h2f6;
 	end else begin
 		slope = 16'h0;
 		zero = 0;
-		x_delta = x-16'h420;
+		x_delta = 16'h420;
 	end
 
 	if(x < 16'hfb68) begin

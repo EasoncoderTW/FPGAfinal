@@ -1,59 +1,74 @@
 module siluPWL(
-	input [15:0] x;
-	output wire [15:0] y;
+	input clk,
+	input rst,
+	input [15:0] x,
+	output wire [15:0] y
 );
 
-reg [4:0] slope;
-reg [7:0] bias;
-reg [15:0] x_delta;
-reg zero;
-assign y = (zero)? 0: (x_delta>>slope)+bias;
+reg [4:0] slope, slope_stage_reg;
+reg [7:0] bias, bias_stage_reg;
+reg [15:0] x_delta, x_stage_reg;
+reg zero, zero_stage_reg;
+always @(posedge clk) begin
+	if(~rst) begin
+		slope_stage_reg <= 0;
+		bias_stage_reg <= 0;
+		x_stage_reg <= 0;
+		zero_stage_reg <= 0;
+	end else begin
+		slope_stage_reg <= slope;
+		bias_stage_reg <= bias;
+		x_stage_reg <= (x - x_delta);
+		zero_stage_reg <= zero;
+	end
+end
+assign y = (zero_stage_reg)? 0: (x_stage_reg >> slope_stage_reg) + bias_stage_reg;
 /**************** Compare and LUT *****************/
 always @(*) begin
 	if(x < 16'hf800) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hf800;
+		x_delta = 16'hf800;
 	end else 	if(x < 16'hfb3a) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hf800;
+		x_delta = 16'hf800;
 	end else 	if(x < 16'hfd31) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'hfb3a;
+		x_delta = 16'hfb3a;
 	end else 	if(x < 16'hfdef) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = x-16'hfd31;
+		x_delta = 16'hfd31;
 	end else 	if(x < 16'hfe90) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'hfdef;
+		x_delta = 16'hfdef;
 	end else 	if(x < 16'hfeda) begin
 		slope = 16'h0;
 		zero = 1;
-		x_delta = x-16'hfe90;
+		x_delta = 16'hfe90;
 	end else 	if(x < 16'hff12) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = x-16'hfeda;
+		x_delta = 16'hfeda;
 	end else 	if(x < 16'hff54) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = x-16'hff12;
+		x_delta = 16'hff12;
 	end else 	if(x < 16'hffbf) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = x-16'hff54;
+		x_delta = 16'hff54;
 	end else 	if(x < 16'h86) begin
 		slope = 16'h1;
 		zero = 0;
-		x_delta = x-16'hffbf;
+		x_delta = 16'hffbf;
 	end else begin
 		slope = 16'h1;
 		zero = 0;
-		x_delta = x-16'h86;
+		x_delta = 16'h86;
 	end
 
 	if(x < 16'hf988) begin
