@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+FRACTION_BIT = 9
+
 def to_hex(d):
     if d >= 0:
         return hex(d)[2:]
@@ -8,7 +10,7 @@ def to_hex(d):
         return hex(2**16+d)[2:]
     
 def fix(x):
-    return int(x*512) / 512
+    return int(x*(2**FRACTION_BIT)) / (2**FRACTION_BIT)
 
 class PWL(object):
     def __init__(self, function, boundary_error,shift_bit = 3 ,approx_range = (-8,8)) -> None:
@@ -48,7 +50,7 @@ class PWL(object):
             if slope != current_slope:
                 self.slope_bound_cnt += 1
                 current_slope = fix(slope)
-                #current_bias = (int((y - current_slope*(x-current_slope_bound))*(2**8)) / (2**8))
+                #current_bias = (int((y - current_slope*(x-current_slope_bound))*(2**FRACTION_BIT)) / (2**FRACTION_BIT))
                 current_slope_bound = fix(x)
                 self.slope_bound.append([current_slope_bound, current_slope])
                 #self.bias_bound.append([x, current_bias])
@@ -119,7 +121,7 @@ class PWL(object):
         b = [i[0] for i in self.slope_bound]
         s = [i[1] for i in self.slope_bound]
         for bound,slope,bound_n in zip(b,[0,] + s[:-1], [b[0],]+b[:-1]):
-            f.write("\tif(x < 16'h{:s}) begin\n".format(to_hex(int(bound*(2**8)))))
+            f.write("\tif(x < 16'h{:s}) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
             if slope == 0:
                 f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
@@ -130,17 +132,17 @@ class PWL(object):
                 except:
                     f.write("\t\tslope = 16'h{:d};\n".format(0))
                     f.write("\t\tzero = {:d};\n".format(1))
-            f.write("\t\tx_delta = 16'h{:s};\n".format(to_hex(int(bound_n*(2**8)))))
+            f.write("\t\tx_delta = 16'h{:s};\n".format(to_hex(int(bound_n*(2**FRACTION_BIT)))))
             f.write("\tend else ")
-        f.write("begin\n\t\tslope = 16'h{:s};\n\t\tzero = 0;\n\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(s[-1])),to_hex(int(bound*(2**8)))))
+        f.write("begin\n\t\tslope = 16'h{:s};\n\t\tzero = 0;\n\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(s[-1])),to_hex(int(bound*(2**FRACTION_BIT)))))
         
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]
         for bound,bias in zip(b,[0,] + bi[:-1]):
-            f.write("\tif(x < 16'h{:s}) begin\n".format(to_hex(int(bound*(2**8)))))
-            f.write("\t\tbias = 16'h{:s};\n".format(to_hex(int(bias*(2**8)))))
+            f.write("\tif(x < 16'h{:s}) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
+            f.write("\t\tbias = 16'h{:s};\n".format(to_hex(int(bias*(2**FRACTION_BIT)))))
             f.write("\tend else ")
-        f.write("begin\n\t\tbias = 16'h{:s};\n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**8)))))
+        f.write("begin\n\t\tbias = 16'h{:s};\n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**FRACTION_BIT)))))
         f.write("endmodule\n")
         f.close()
             
