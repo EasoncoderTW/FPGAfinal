@@ -6,7 +6,7 @@ module sigmoidPWL(
 );
 
 reg [4:0] slope, slope_stage_reg;
-reg [5:0] bias, bias_stage_reg;
+reg [4:0] bias, bias_stage_reg;
 reg [15:0] x_delta, x_stage_reg;
 reg zero, zero_stage_reg;
 always @(posedge clk) begin
@@ -33,34 +33,34 @@ always @(*) begin
 		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf800;
-	end else 	if(x < 16'hfd0a) begin
+	end else 	if(x < 16'hfd0c) begin
 		slope = 16'h5;
 		zero = 0;
 		x_delta = 16'hfbe0;
-	end else 	if(x < 16'hfddb) begin
+	end else 	if(x < 16'hfddc) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = 16'hfd0a;
-	end else 	if(x < 16'hfee7) begin
+		x_delta = 16'hfd0c;
+	end else 	if(x < 16'hfee8) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = 16'hfddb;
-	end else 	if(x < 16'h119) begin
+		x_delta = 16'hfddc;
+	end else 	if(x < 16'h118) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = 16'hfee7;
-	end else 	if(x < 16'h225) begin
+		x_delta = 16'hfee8;
+	end else 	if(x < 16'h224) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = 16'h119;
-	end else 	if(x < 16'h2f6) begin
+		x_delta = 16'h118;
+	end else 	if(x < 16'h2f4) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = 16'h225;
+		x_delta = 16'h224;
 	end else 	if(x < 16'h420) begin
 		slope = 16'h5;
 		zero = 0;
-		x_delta = 16'h2f6;
+		x_delta = 16'h2f4;
 	end else begin
 		slope = 16'h0;
 		zero = 0;
@@ -69,38 +69,34 @@ always @(*) begin
 
 	if(x < 16'hfb68) begin
 		bias = 16'h0;
-	end else 	if(x < 16'hfd0a) begin
+	end else 	if(x < 16'hfd0c) begin
 		bias = 16'h4;
-	end else 	if(x < 16'hfddb) begin
+	end else 	if(x < 16'hfddc) begin
 		bias = 16'he;
-	end else 	if(x < 16'hfe1e) begin
+	end else 	if(x < 16'hfe04) begin
 		bias = 16'h1c;
-	end else 	if(x < 16'hfe66) begin
-		bias = 16'h17;
-	end else 	if(x < 16'hfed7) begin
-		bias = 16'h1b;
-	end else 	if(x < 16'hfee7) begin
-		bias = 16'h1f;
-	end else 	if(x < 16'hff04) begin
-		bias = 16'h41;
-	end else 	if(x < 16'h64) begin
-		bias = 16'h3c;
-	end else 	if(x < 16'h109) begin
-		bias = 16'h37;
-	end else 	if(x < 16'h119) begin
-		bias = 16'h32;
-	end else 	if(x < 16'h163) begin
+	end else 	if(x < 16'hfe90) begin
+		bias = 16'h18;
+	end else 	if(x < 16'hfee8) begin
+		bias = 16'h1c;
+	end else 	if(x < 16'hfef8) begin
+		bias = 16'h42;
+	end else 	if(x < 16'hff90) begin
+		bias = 16'h3d;
+	end else 	if(x < 16'hf4) begin
+		bias = 16'h38;
+	end else 	if(x < 16'h118) begin
+		bias = 16'h33;
+	end else 	if(x < 16'h178) begin
 		bias = 16'hc1;
-	end else 	if(x < 16'h225) begin
+	end else 	if(x < 16'h224) begin
 		bias = 16'hc5;
-	end else 	if(x < 16'h2f6) begin
+	end else 	if(x < 16'h2f4) begin
 		bias = 16'he6;
 	end else 	if(x < 16'h420) begin
 		bias = 16'hf5;
-	end else 	if(x < 16'h65e) begin
-		bias = 16'hfd;
 	end else begin
-		bias = 16'h101;
+		bias = 16'hfd;
 	end
 end
 

@@ -29,108 +29,106 @@ always @(*) begin
 		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf800;
-	end else 	if(x < 16'hfd95) begin
+	end else 	if(x < 16'hfd94) begin
 		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf800;
-	end else 	if(x < 16'hfe26) begin
+	end else 	if(x < 16'hfe24) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = 16'hfd95;
-	end else 	if(x < 16'hfe85) begin
+		x_delta = 16'hfd94;
+	end else 	if(x < 16'hfe84) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = 16'hfe26;
-	end else 	if(x < 16'hfeed) begin
+		x_delta = 16'hfe24;
+	end else 	if(x < 16'hfeec) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = 16'hfe85;
-	end else 	if(x < 16'hff73) begin
+		x_delta = 16'hfe84;
+	end else 	if(x < 16'hff74) begin
 		slope = 16'h1;
 		zero = 0;
-		x_delta = 16'hfeed;
-	end else 	if(x < 16'h8d) begin
+		x_delta = 16'hfeec;
+	end else 	if(x < 16'h8c) begin
 		slope = 16'h0;
 		zero = 0;
-		x_delta = 16'hff73;
-	end else 	if(x < 16'h113) begin
+		x_delta = 16'hff74;
+	end else 	if(x < 16'h114) begin
 		slope = 16'h1;
 		zero = 0;
-		x_delta = 16'h8d;
-	end else 	if(x < 16'h17b) begin
+		x_delta = 16'h8c;
+	end else 	if(x < 16'h17c) begin
 		slope = 16'h2;
 		zero = 0;
-		x_delta = 16'h113;
-	end else 	if(x < 16'h1da) begin
+		x_delta = 16'h114;
+	end else 	if(x < 16'h1dc) begin
 		slope = 16'h3;
 		zero = 0;
-		x_delta = 16'h17b;
-	end else 	if(x < 16'h26b) begin
+		x_delta = 16'h17c;
+	end else 	if(x < 16'h26c) begin
 		slope = 16'h4;
 		zero = 0;
-		x_delta = 16'h1da;
+		x_delta = 16'h1dc;
 	end else begin
 		slope = 16'h0;
 		zero = 0;
-		x_delta = 16'h26b;
+		x_delta = 16'h26c;
 	end
 
 	if(x < 16'hf800) begin
 		bias = 16'h0;
-	end else 	if(x < 16'hfd1b) begin
+	end else 	if(x < 16'hfcec) begin
 		bias = 16'hfeff;
-	end else 	if(x < 16'hfe26) begin
-		bias = 16'hff04;
-	end else 	if(x < 16'hfe27) begin
+	end else 	if(x < 16'hfe24) begin
+		bias = 16'hff03;
+	end else 	if(x < 16'hfe4c) begin
+		bias = 16'hff0e;
+	end else 	if(x < 16'hfe7c) begin
+		bias = 16'hff0a;
+	end else 	if(x < 16'hfe84) begin
 		bias = 16'hff0f;
-	end else 	if(x < 16'hfe85) begin
-		bias = 16'hff0b;
-	end else 	if(x < 16'hfe94) begin
+	end else 	if(x < 16'hfe90) begin
 		bias = 16'hff1b;
-	end else 	if(x < 16'hfedb) begin
+	end else 	if(x < 16'hfee0) begin
 		bias = 16'hff17;
-	end else 	if(x < 16'hfeed) begin
+	end else 	if(x < 16'hfeec) begin
 		bias = 16'hff1c;
-	end else 	if(x < 16'hfeee) begin
+	end else 	if(x < 16'hfef4) begin
+		bias = 16'hff37;
+	end else 	if(x < 16'hff50) begin
+		bias = 16'hff33;
+	end else 	if(x < 16'hff6c) begin
 		bias = 16'hff38;
-	end else 	if(x < 16'hff55) begin
-		bias = 16'hff34;
-	end else 	if(x < 16'hff6f) begin
-		bias = 16'hff39;
-	end else 	if(x < 16'hff73) begin
-		bias = 16'hff3e;
-	end else 	if(x < 16'hff75) begin
-		bias = 16'hff82;
-	end else 	if(x < 16'hff87) begin
+	end else 	if(x < 16'hff74) begin
+		bias = 16'hff3d;
+	end else 	if(x < 16'hff78) begin
+		bias = 16'hff83;
+	end else 	if(x < 16'hff8c) begin
 		bias = 16'hff7e;
-	end else 	if(x < 16'hff9f) begin
+	end else 	if(x < 16'hffa8) begin
 		bias = 16'hff7a;
-	end else 	if(x < 16'hffd4) begin
+	end else 	if(x < 16'h34) begin
 		bias = 16'hff76;
-	end else 	if(x < 16'h5b) begin
+	end else 	if(x < 16'h64) begin
 		bias = 16'hff72;
-	end else 	if(x < 16'h76) begin
+	end else 	if(x < 16'h80) begin
 		bias = 16'hff6e;
-	end else 	if(x < 16'h89) begin
-		bias = 16'hff6a;
-	end else 	if(x < 16'h8d) begin
-		bias = 16'hff66;
-	end else 	if(x < 16'ha1) begin
-		bias = 16'h82;
-	end else 	if(x < 16'hbb) begin
-		bias = 16'h86;
-	end else 	if(x < 16'h113) begin
-		bias = 16'h8a;
-	end else 	if(x < 16'h17b) begin
+	end else 	if(x < 16'h8c) begin
+		bias = 16'hff69;
+	end else 	if(x < 16'ha0) begin
+		bias = 16'h81;
+	end else 	if(x < 16'hbc) begin
+		bias = 16'h85;
+	end else 	if(x < 16'h114) begin
+		bias = 16'h89;
+	end else 	if(x < 16'h17c) begin
 		bias = 16'hcc;
-	end else 	if(x < 16'h1da) begin
+	end else 	if(x < 16'h1dc) begin
 		bias = 16'he8;
-	end else 	if(x < 16'h26b) begin
+	end else 	if(x < 16'h26c) begin
 		bias = 16'hf5;
-	end else 	if(x < 16'h388) begin
-		bias = 16'hfd;
 	end else begin
-		bias = 16'h101;
+		bias = 16'hfd;
 	end
 end
 

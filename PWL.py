@@ -6,6 +6,9 @@ def to_hex(d):
         return hex(d)[2:]
     else:
         return hex(2**16+d)[2:]
+    
+def fix(x):
+    return int(x*512) / 512
 
 class PWL(object):
     def __init__(self, function, boundary_error,shift_bit = 3 ,approx_range = (-8,8)) -> None:
@@ -23,7 +26,7 @@ class PWL(object):
     
     def run_PWL(self):
         print("Runing PWL approximate...", end ="")
-        X = list(np.linspace(-8, 8, (2**8)*16+1))
+        X = list(np.linspace(-8, 8, (2**6)*16+1))
         Y = [self.origin_function(x) for x in X]
         Y_dif = [(y[1]-y[0])/(x[1]-x[0]) for x,y in zip(zip(X[:-1],X[1:]),zip(Y[:-1],Y[1:]))]
         
@@ -44,18 +47,18 @@ class PWL(object):
         for x,slope,y in zip(X[:-1],approx_slope,Y[:-1]):
             if slope != current_slope:
                 self.slope_bound_cnt += 1
-                current_slope = slope
+                current_slope = fix(slope)
                 #current_bias = (int((y - current_slope*(x-current_slope_bound))*(2**8)) / (2**8))
-                current_slope_bound = x
-                self.slope_bound.append([x, slope])
+                current_slope_bound = fix(x)
+                self.slope_bound.append([current_slope_bound, current_slope])
                 #self.bias_bound.append([x, current_bias])
                 
-            y_approx = current_slope*(x-current_slope_bound)+current_bias
+            y_approx = fix(fix(current_slope*fix(x-current_slope_bound))+current_bias)
             if abs(y_approx-y) > self.boundary_error:
                 self.bias_bound_cnt += 1
-                current_bias = (int((y - current_slope*(x-current_slope_bound) + self.boundary_error*0.7)*(2**8)) / (2**8)) if y_approx < y else (int((y - current_slope*(x-current_slope_bound) - self.boundary_error*0.7)*(2**8)) / (2**8))
+                current_bias = (fix((y - fix(current_slope*fix(x-current_slope_bound)) + self.boundary_error*0.7))) if y_approx < y else (fix((y - fix(current_slope*(x-current_slope_bound)) - self.boundary_error*0.7)))
                 #current_bias =  (int(y//(2**-8)) * (2**-8))
-                self.bias_bound.append([x, current_bias])
+                self.bias_bound.append([fix(x), current_bias])
 
         
         print("Done")
@@ -64,20 +67,21 @@ class PWL(object):
         y = 0
         for (bound,slope),(bound_next, _) in zip(self.slope_bound[:-1],self.slope_bound[1:]):
             if x >= bound and x < bound_next:
-                y = slope*(x-bound)
+                y = fix(slope)*fix(x-bound)
                 break
         else:
             if x < self.slope_bound[0][0]:
-                y = self.slope_bound[0][1]*(x-self.slope_bound[0][0])
+                y = fix(self.slope_bound[0][1])*fix((x-self.slope_bound[0][0]))
             else:
-                y = self.slope_bound[-1][1]*(x-self.slope_bound[-1][0])
+                y = fix(self.slope_bound[-1][1])*fix(x-self.slope_bound[-1][0])
+        y = fix(y)
         for (bound,bias),(bound_next, _) in zip(self.bias_bound[:-1],self.bias_bound[1:]):
             if x >= bound and x < bound_next:
-                y = y + bias
+                y = fix(y + bias)
                 break    
         else:
             if x >= self.bias_bound[-1][0]:
-                y = y + self.bias_bound[-1][1]
+                y = fix(y + self.bias_bound[-1][1])
         return y
 
     @property
@@ -145,7 +149,7 @@ class PWL(object):
 # 5
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
-# 4
+# 2
 def silu(x):
     return x / (1 + np.exp(-x))
 # 4
@@ -153,9 +157,9 @@ def tanh(x):
     return  (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
 
 def main():
-    function_pwl = PWL(tanh,boundary_error = 0.02,shift_bit=4)
+    function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
     
-    X = list(np.linspace(-8,8,256*16+1))
+    X = list(np.linspace(-8,8,(2**6)*16+1))
     Y = [function_pwl.origin_function(x) for x in X]
     Y_pwl = [function_pwl(x) for x in X]
     err = [y_pwl-y for y,y_pwl in zip(Y,Y_pwl)]
@@ -204,7 +208,7 @@ def test():
 def code_gen():
     function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
     function_pwl.gen_verilog("tanhPWL")
-    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=4)
+    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
     function_pwl.gen_verilog("siluPWL")
     function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
     function_pwl.gen_verilog("sigmoidPWL")
