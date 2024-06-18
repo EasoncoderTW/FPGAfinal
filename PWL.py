@@ -98,9 +98,9 @@ class PWL(object):
         f.write("\tinput [15:0] x,\n")
         f.write("\toutput wire [15:0] y\n")
         f.write(");\n\n")
-        f.write("reg [{:d}:0] slope, slope_stage_reg;\n".format(int(np.log2(self.slope_bound_cnt)+1)))
-        f.write("reg [{:d}:0] bias, bias_stage_reg;\n".format(int(np.log2(self.bias_bound_cnt)+1)))
-        f.write("reg [15:0] x_delta, x_stage_reg;\n")
+        f.write("reg signed [{:d}:0] slope, slope_stage_reg;\n".format(int(np.log2(self.slope_bound_cnt)+1)))
+        f.write("reg signed [{:d}:0] bias, bias_stage_reg;\n".format(int(np.log2(self.bias_bound_cnt)+1)))
+        f.write("reg signed [15:0] x_delta, x_stage_reg;\n")
         f.write("reg zero, zero_stage_reg;\n")
         f.write("always @(posedge clk) begin\n")
         f.write("\tif(~rst) begin\n")
@@ -115,13 +115,13 @@ class PWL(object):
         f.write("\t\tzero_stage_reg <= zero;\n")
         f.write("\tend\n")
         f.write("end\n")
-        f.write("assign y = (zero_stage_reg)? 0: ({16{x_stage_reg[15]},x_stage_reg} >> slope_stage_reg)[15:0] + bias_stage_reg;\n")
+        f.write("assign y = (zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg) + bias_stage_reg;\n")
         f.write("/**************** Compare and LUT *****************/\n")
         f.write("always @(*) begin\n")
         b = [i[0] for i in self.slope_bound]
         s = [i[1] for i in self.slope_bound]
         for bound,slope,bound_n in zip(b,[0,] + s[:-1], [b[0],]+b[:-1]):
-            f.write("\tif((x - 16'h{:s})[15]) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
+            f.write("\tif(x < $signed(16'h{:s})) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
             if slope == 0:
                 f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
@@ -139,7 +139,7 @@ class PWL(object):
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]
         for bound,bias in zip(b,[0,] + bi[:-1]):
-            f.write("\tif((x - 16'h{:s})[15]) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
+            f.write("\tif(x < $signed(16'h{:s})) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
             f.write("\t\tbias = 16'h{:s};\n".format(to_hex(int(bias*(2**FRACTION_BIT)))))
             f.write("\tend else ")
         f.write("begin\n\t\tbias = 16'h{:s};\n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**FRACTION_BIT)))))
