@@ -121,11 +121,7 @@ class PWL(object):
         b = [i[0] for i in self.slope_bound]
         s = [i[1] for i in self.slope_bound]
         for bound,slope,bound_n in zip(b,[0,] + s[:-1], [b[0],]+b[:-1]):
-<<<<<<< HEAD
-            f.write("\tif((x - 16'h{:s})) begin // {:f} \n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
-=======
-            f.write("\tif(x < $signed(16'h{:s})) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
->>>>>>> 729126d4e96fa67b43c625e41b50e7202177de6a
+            f.write("\tif(x < $signed(16'h{:s})) begin // {:f} \n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
             if slope == 0:
                 f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
@@ -143,13 +139,8 @@ class PWL(object):
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]
         for bound,bias in zip(b,[0,] + bi[:-1]):
-<<<<<<< HEAD
-            f.write("\tif((x - 16'h{:s})[15]) begin // {:f}\n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
+            f.write("\tif(x < $signed(16'h{:s})) begin // {:f}\n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
             f.write("\t\tbias = 16'h{:s}; // {:f} \n".format(to_hex(int(bias*(2**FRACTION_BIT))),bias))
-=======
-            f.write("\tif(x < $signed(16'h{:s})) begin\n".format(to_hex(int(bound*(2**FRACTION_BIT)))))
-            f.write("\t\tbias = 16'h{:s};\n".format(to_hex(int(bias*(2**FRACTION_BIT)))))
->>>>>>> 729126d4e96fa67b43c625e41b50e7202177de6a
             f.write("\tend else ")
         f.write("begin\n\t\tbias = 16'h{:s}; // {:f} \n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**FRACTION_BIT))),bias))
         f.write("endmodule\n")
