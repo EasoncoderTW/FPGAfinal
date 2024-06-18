@@ -1,44 +1,44 @@
-module original_papper\sigmoidPWL(
+module sigmoidPWL(
 	input clk,
 	input rst,
 	input [15:0] x,
 	output wire [15:0] y
 );
 
-reg signed [2:0] slope, slope_stage_reg;
+// reg signed [2:0] slope, slope_stage_reg;
 reg signed [5:0] bias, bias_stage_reg;
 reg signed [15:0] x_delta, x_stage_reg;
 reg zero, zero_stage_reg;
 always @(posedge clk) begin
 	if(~rst) begin
-		slope_stage_reg <= 0;
+		// slope_stage_reg <= 0;
 		bias_stage_reg <= 0;
 		x_stage_reg <= 0;
 		zero_stage_reg <= 0;
 	end else begin
-		slope_stage_reg <= slope;
+		// slope_stage_reg <= slope;
 		bias_stage_reg <= bias;
 		x_stage_reg <= (x - x_delta);
 		zero_stage_reg <= zero;
 	end
 end
-assign y = (zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg) + bias_stage_reg;
+assign y = (zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> 2'b11) + bias_stage_reg;
 /**************** Compare and LUT *****************/
 always @(*) begin
 	if(x < $signed(16'hf000)) begin // -8.000000 
-		slope = 16'h0;
+		// slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf000;
 	end else 	if(x < $signed(16'hfab8)) begin // -2.640625 
-		slope = 16'h0;
+		// slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf000;
 	end else 	if(x < $signed(16'h548)) begin // 2.640625 
-		slope = 16'h3; // 0.125000
+		// slope = 16'h3; // 0.125000
 		zero = 0;
 		x_delta = 16'hfab8;
 	end else begin
-		slope = 16'h0;
+		// slope = 16'h0;
 		zero = 0;
 		x_delta = 16'h548;
 	end

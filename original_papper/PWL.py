@@ -33,7 +33,7 @@ class PWL(object):
         Y_dif = [(y[1]-y[0])/(x[1]-x[0]) for x,y in zip(zip(X[:-1],X[1:]),zip(Y[:-1],Y[1:]))]
         
         def find_slope(y_dif):
-            p = [0,0.125] #+ [2**i for i in list(range(-self.shift_bit,self.shift_bit))]
+            p = [0,0.5] #+ [2**i for i in list(range(-self.shift_bit,self.shift_bit))]
             s = min(p,key=lambda t: abs(t-abs(y_dif)))
             return s
 
@@ -46,7 +46,7 @@ class PWL(object):
         current_bias = 0
         self.slope_bound_cnt = 0
         self.bias_bound_cnt = 0
-        for x,slope,y in zip(X[:-1],approx_slope,Y[:-1]):
+        for x,slope,y,y2 in zip(X[:-1],approx_slope,Y[:-1],Y[1:]):
             if slope != current_slope:
                 self.slope_bound_cnt += 1
                 current_slope = fix(slope)
@@ -58,7 +58,7 @@ class PWL(object):
             y_approx = fix(fix(current_slope*fix(x-current_slope_bound))+current_bias)
             if abs(y_approx-y) > self.boundary_error:
                 self.bias_bound_cnt += 1
-                current_bias = (fix((y - fix(current_slope*fix(x-current_slope_bound)) + self.boundary_error*0.7))) if y_approx < y else (fix((y - fix(current_slope*(x-current_slope_bound)) - self.boundary_error*0.7)))
+                current_bias = (fix(((y+y2)/2 - fix(current_slope*fix(x-current_slope_bound)) ))) if y_approx < y else (fix(((y+y2)/2 - fix(current_slope*(x-current_slope_bound)))))
                 #current_bias =  (int(y//(2**-8)) * (2**-8))
                 self.bias_bound.append([fix(x), current_bias])
 
@@ -209,14 +209,14 @@ def test():
 
 def code_gen():
     function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
-    function_pwl.gen_verilog("tanhPWL")
-    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
-    function_pwl.gen_verilog("siluPWL")
-    function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
-    function_pwl.gen_verilog("original_papper\sigmoidPWL")
+    function_pwl.gen_verilog("original_papper\ tanhPWL")
+    # function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
+    # function_pwl.gen_verilog("siluPWL")
+    # function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
+    # function_pwl.gen_verilog("original_papper\sigmoidPWL")
     
     
 if __name__ == "__main__":
-    #main()
+    # main()
     #test()
     code_gen()
