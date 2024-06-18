@@ -25,13 +25,11 @@ def genCode(filename, fn):
 
     f = open(filename+".v","w")
     f.write(f"module {filename}(\n")
-    f.write("\tinput clk,\n")
-    f.write("\tinput rst_n,\n")
     f.write("\tinput [15:0] x,\n")
     f.write("\toutput wire [15:0] y\n")
     f.write(");\n\n")
 
-    f.write("\talways @(*)\n")
+    f.write("\talways @(*) begin\n")
     f.write("\t\tcase(x)\n")
 
     for i in range(2**16):
@@ -44,7 +42,7 @@ def genCode(filename, fn):
     f.write("\t\t\tdefault: y = 0;\n")
 
     f.write("\t\tendcase\n")
-
+    f.write("\tend\n")
     f.write("endmodule\n")
     f.close()
 

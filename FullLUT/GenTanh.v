@@ -1,11 +1,9 @@
 module GenTanh(
-	input clk,
-	input rst_n,
 	input [15:0] x,
 	output wire [15:0] y
 );
 
-	always @(*)
+	always @(*) begin
 		case(x)
 			 16'h8000: y = 16'hfe00;
 			 16'h8001: y = 16'hfe00;
@@ -65545,4 +65543,5 @@ module GenTanh(
 			 16'h7fff: y = 16'h200;
 			default: y = 0;
 		endcase
+	end
 endmodule
