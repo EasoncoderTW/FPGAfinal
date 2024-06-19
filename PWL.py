@@ -115,7 +115,7 @@ class PWL(object):
         f.write("\t\tzero_stage_reg <= zero;\n")
         f.write("\tend\n")
         f.write("end\n")
-        f.write("assign y = (zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg) + bias_stage_reg;\n\n")
+        f.write("assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;\n\n")
         for i,(bound,_ )in enumerate(self.slope_bound):
             f.write("\twire [15:0] compare_slope_{:d} = (x - 16'h{:s}); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
         f.write("\n")
@@ -143,7 +143,15 @@ class PWL(object):
             #f.write("\t\t$display(\"{:d}\");\n".format(i))
             i = i+1
             f.write("\tend else ")
-        f.write("begin\n\t\tslope = 16'h{:s};\n\t\tzero = 0;\n\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(s[-1])),to_hex(int(bound*(2**FRACTION_BIT)))))
+        f.write("begin\n")
+        if s[-1] != 0:
+            f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(s[-1]))),s[-1]))
+            f.write("\t\tzero = {:d};\n".format(0))
+        else:
+            f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,s[-1]))
+            f.write("\t\tzero = {:d};\n".format(1))
+            
+        f.write("\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(b[-1]*(2**FRACTION_BIT)))))
         
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]

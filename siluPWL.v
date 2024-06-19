@@ -22,7 +22,7 @@ always @(posedge clk) begin
 		zero_stage_reg <= zero;
 	end
 end
-assign y = (zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg) + bias_stage_reg;
+assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;
 
 	wire [15:0] compare_slope_0 = (x - 16'hf000); // -8.000000 
 	wire [15:0] compare_slope_1 = (x - 16'hfe50); // -0.843750 
@@ -97,7 +97,7 @@ always @(*) begin
 		zero = 0;
 		x_delta = 16'hff80;
 	end else begin
-		slope = 16'h1;
+		slope = 16'h0; // 1.000000
 		zero = 0;
 		x_delta = 16'h108;
 	end
