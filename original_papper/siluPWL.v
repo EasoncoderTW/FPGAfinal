@@ -3,25 +3,21 @@ module siluPWL(
 	output wire [15:0] y
 );
 
-reg [2:0] slope;
 reg [15:0] bias;
 reg [15:0] x_delta;
 reg zero;
 wire [15:0] x_ = (x - x_delta);
-assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> slope)) + bias;
+assign y = ((zero)? 0: ({{16{x_[15]}},x_} )) + bias;
 
 /**************** Compare and LUT *****************/
 always @(*) begin
 	if({~x[15],x[14:0]} < (16'h7000)) begin // -8.000000 
-		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf000;
 	end else 	if({~x[15],x[14:0]} < (16'h8000)) begin // 0.000000 
-		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf000;
 	end else begin
-		slope = 16'h0; // 1.000000
 		zero = 0;
 		x_delta = 16'h0;
 	end
