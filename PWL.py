@@ -116,19 +116,19 @@ class PWL(object):
         f.write("\tend\n")
         f.write("end\n")
         f.write("assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;\n\n")
-        for i,(bound,_ )in enumerate(self.slope_bound):
-            f.write("\twire [15:0] compare_slope_{:d} = (x - 16'h{:s}); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
-        f.write("\n")
-        for i,(bound,_ ) in enumerate(self.bias_bound):
-            f.write("\twire [15:0] compare_bias_{:d} = (x - 16'h{:s}); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
-        f.write("\n")
+        # for i,(bound,_ )in enumerate(self.slope_bound):
+        #     f.write("\twire compare_slope_{:d} = ($signed(x) < $signed(16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        # f.write("\n")
+        # for i,(bound,_ ) in enumerate(self.bias_bound):
+        #     f.write("\twire compare_bias_{:d} = ($signed(x) < $signed(16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        # f.write("\n")
         f.write("/**************** Compare and LUT *****************/\n")
         f.write("always @(*) begin\n")
         b = [i[0] for i in self.slope_bound]
         s = [i[1] for i in self.slope_bound]
         i = 0
         for i,(bound,slope,bound_n) in enumerate(zip(b,[0,] + s[:-1], [b[0],]+b[:-1])):
-            f.write("\tif(compare_slope_{:d}[15]) begin // {:f} \n".format(i,bound))
+            f.write("\tif({{~x[15],x[14:0]}} < (16'h{:s})) begin // {:f} \n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
             if slope == 0:
                 f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
@@ -156,7 +156,7 @@ class PWL(object):
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]
         for i,(bound,bias) in enumerate(zip(b,[0,] + bi[:-1])):
-            f.write("\tif(compare_bias_{:d}[15]) begin // {:f}\n".format(i,bound))
+            f.write("\tif({{~x[15],x[14:0]}} < (16'h{:s})) begin // {:f}\n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
             f.write("\t\tbias = 16'h{:s}; // {:f} \n".format(to_hex(int(bias*(2**FRACTION_BIT))),bias))
             f.write("\tend else ")
         f.write("begin\n\t\tbias = 16'h{:s}; // {:f} \n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**FRACTION_BIT))),bias))
@@ -230,7 +230,7 @@ def code_gen():
     function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
     function_pwl.gen_verilog("siluPWL")
     function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
-    function_pwl.gen_verilog("sigmoidPWL")
+    # function_pwl.gen_verilog("sigmoidPWL")
     
     
 if __name__ == "__main__":

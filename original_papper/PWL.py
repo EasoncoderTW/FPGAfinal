@@ -33,7 +33,7 @@ class PWL(object):
         Y_dif = [(y[1]-y[0])/(x[1]-x[0]) for x,y in zip(zip(X[:-1],X[1:]),zip(Y[:-1],Y[1:]))]
         
         def find_slope(y_dif):
-            p = [0,0.5] #+ [2**i for i in list(range(-self.shift_bit,self.shift_bit))]
+            p = [0,1]# + [2**i for i in list(range(-self.shift_bit,self.shift_bit))]
             s = min(p,key=lambda t: abs(t-abs(y_dif)))
             return s
 
@@ -46,7 +46,7 @@ class PWL(object):
         current_bias = 0
         self.slope_bound_cnt = 0
         self.bias_bound_cnt = 0
-        for x,slope,y,y2 in zip(X[:-1],approx_slope,Y[:-1],Y[1:]):
+        for x,slope,y in zip(X[:-1],approx_slope,Y[:-1]):
             if slope != current_slope:
                 self.slope_bound_cnt += 1
                 current_slope = fix(slope)
@@ -58,11 +58,11 @@ class PWL(object):
             y_approx = fix(fix(current_slope*fix(x-current_slope_bound))+current_bias)
             if abs(y_approx-y) > self.boundary_error:
                 self.bias_bound_cnt += 1
-                current_bias = (fix(((y+y2)/2 - fix(current_slope*fix(x-current_slope_bound)) ))) if y_approx < y else (fix(((y+y2)/2 - fix(current_slope*(x-current_slope_bound)))))
+                current_bias = (fix((y - fix(current_slope*fix(x-current_slope_bound)) + self.boundary_error*0.5))) if y_approx < y else (fix((y - fix(current_slope*(x-current_slope_bound)) - self.boundary_error*0.5)))
                 #current_bias =  (int(y//(2**-8)) * (2**-8))
                 self.bias_bound.append([fix(x), current_bias])
 
-        
+        # print("slop",self.slope_bound)
         print("Done")
     
     def __call__(self,x):  
@@ -94,52 +94,61 @@ class PWL(object):
         f = open(filename+".v","w")
         f.write(f"module {filename}(\n")
         f.write("\tinput clk,\n")
-        f.write("\tinput rst,\n")
+        f.write("\tinput rst_n,\n")
         f.write("\tinput [15:0] x,\n")
         f.write("\toutput wire [15:0] y\n")
         f.write(");\n\n")
-        f.write("reg signed [{:d}:0] slope, slope_stage_reg;\n".format(int(np.log2(self.slope_bound_cnt)+1)))
-        f.write("reg signed [{:d}:0] bias, bias_stage_reg;\n".format(int(np.log2(self.bias_bound_cnt)+1)))
+        f.write("reg signed [15:0] bias, bias_stage_reg;\n")
         f.write("reg signed [15:0] x_delta, x_stage_reg;\n")
         f.write("reg zero, zero_stage_reg;\n")
         f.write("always @(posedge clk) begin\n")
-        f.write("\tif(~rst) begin\n")
-        f.write("\t\tslope_stage_reg <= 0;\n")
+        f.write("\tif(~rst_n) begin\n")
         f.write("\t\tbias_stage_reg <= 0;\n")
         f.write("\t\tx_stage_reg <= 0;\n")
         f.write("\t\tzero_stage_reg <= 0;\n")
         f.write("\tend else begin\n")
-        f.write("\t\tslope_stage_reg <= slope;\n")
         f.write("\t\tbias_stage_reg <= bias;\n")
         f.write("\t\tx_stage_reg <= (x - x_delta);\n")
         f.write("\t\tzero_stage_reg <= zero;\n")
         f.write("\tend\n")
         f.write("end\n")
-        f.write("assign y = (zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg) + bias_stage_reg;\n")
+        f.write("assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;\n\n")
+        for i,(bound,_ )in enumerate(self.slope_bound):
+            f.write("\twire compare_slope_{:d} = ({{~x[15],x[14:0]}} < (16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        f.write("\n")
+        for i,(bound,_ ) in enumerate(self.bias_bound):
+            f.write("\twire compare_bias_{:d} = ({{~x[15],x[14:0]}} < (16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        f.write("\n")
         f.write("/**************** Compare and LUT *****************/\n")
         f.write("always @(*) begin\n")
         b = [i[0] for i in self.slope_bound]
         s = [i[1] for i in self.slope_bound]
-        for bound,slope,bound_n in zip(b,[0,] + s[:-1], [b[0],]+b[:-1]):
-            f.write("\tif(x < $signed(16'h{:s})) begin // {:f} \n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        i = 0
+        for i,(bound,slope,bound_n) in enumerate(zip(b,[0,] + s[:-1], [b[0],]+b[:-1])):
+            f.write("\tif(compare_slope_{:d}) begin // {:f} \n".format(i,bound))
             if slope == 0:
-                f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
             else:
                 try:
-                    f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(slope))),slope))
                     f.write("\t\tzero = {:d};\n".format(0))
                 except:
-                    f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,slope))
                     f.write("\t\tzero = {:d};\n".format(1))
             f.write("\t\tx_delta = 16'h{:s};\n".format(to_hex(int(bound_n*(2**FRACTION_BIT)))))
+            #f.write("\t\t$display(\"{:d}\");\n".format(i))
+            i = i+1
             f.write("\tend else ")
-        f.write("begin\n\t\tslope = 16'h{:s};\n\t\tzero = 0;\n\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(s[-1])),to_hex(int(bound*(2**FRACTION_BIT)))))
+        f.write("begin\n")
+        if s[-1] != 0:
+            f.write("\t\tzero = {:d};\n".format(0))
+        else:
+            f.write("\t\tzero = {:d};\n".format(1))
+            
+        f.write("\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(b[-1]*(2**FRACTION_BIT)))))
         
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]
-        for bound,bias in zip(b,[0,] + bi[:-1]):
-            f.write("\tif(x < $signed(16'h{:s})) begin // {:f}\n".format(to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        for i,(bound,bias) in enumerate(zip(b,[0,] + bi[:-1])):
+            f.write("\tif(compare_bias_{:d}) begin // {:f}\n".format(i,bound))
             f.write("\t\tbias = 16'h{:s}; // {:f} \n".format(to_hex(int(bias*(2**FRACTION_BIT))),bias))
             f.write("\tend else ")
         f.write("begin\n\t\tbias = 16'h{:s}; // {:f} \n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**FRACTION_BIT))),bias))
@@ -159,7 +168,7 @@ def tanh(x):
     return  (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
 
 def main():
-    function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
+    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=4)
     
     X = list(np.linspace(-8,8,(2**6)*16+1))
     Y = [function_pwl.origin_function(x) for x in X]
@@ -190,7 +199,7 @@ def test():
     y_bias = []
     y_entry = []
     for s in x:
-        function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=s)
+        function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=s)
         y_slope.append(function_pwl.slope_bound_cnt)
         y_bias.append(function_pwl.bias_bound_cnt)
         y_entry.append(function_pwl.entry)
@@ -208,10 +217,10 @@ def test():
     plt.show()
 
 def code_gen():
-    function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
-    function_pwl.gen_verilog("original_papper\ tanhPWL")
-    # function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
-    # function_pwl.gen_verilog("siluPWL")
+    # function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
+    # function_pwl.gen_verilog(" tanhPWL")
+    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
+    function_pwl.gen_verilog("original_papper\siluPWL")
     # function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
     # function_pwl.gen_verilog("original_papper\sigmoidPWL")
     
