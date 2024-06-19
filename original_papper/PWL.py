@@ -13,8 +13,9 @@ def fix(x):
     return int(x*(2**FRACTION_BIT)) / (2**FRACTION_BIT)
 
 class PWL(object):
-    def __init__(self, function, boundary_error,shift_bit = 3 ,approx_range = (-8,8)) -> None:
+    def __init__(self, function, boundary_error,shift_bit = 3 ,approx_range = (-8,8), k = 0.125 ) -> None:
         assert(callable(function)),  "Function should be callable"
+        self.k=k
         self.origin_function = function
         self.boundary_error = boundary_error
         self.slope_bound = []
@@ -32,7 +33,7 @@ class PWL(object):
         Y_dif = [(y[1]-y[0])/(x[1]-x[0]) for x,y in zip(zip(X[:-1],X[1:]),zip(Y[:-1],Y[1:]))]
         
         def find_slope(y_dif):
-            p = [0,1]# + [2**i for i in list(range(-self.shift_bit,self.shift_bit))]
+            p = [0,self.k] #+ [2**i for i in list(range(-self.shift_bit,self.shift_bit))]
             s = min(p,key=lambda t: abs(t-abs(y_dif)))
             return s
 
@@ -61,7 +62,7 @@ class PWL(object):
                 #current_bias =  (int(y//(2**-8)) * (2**-8))
                 self.bias_bound.append([fix(x), current_bias])
 
-        # print("slop",self.slope_bound)
+        
         print("Done")
     
     def __call__(self,x):  
@@ -87,7 +88,7 @@ class PWL(object):
 
     @property
     def entry(self):
-        return len(self.bias_bound)
+        return len(self.bias_bound + self.slope_bound)
 
     def gen_verilog(self, filename = "auto_gen.v"):
         f = open(filename+".v","w")
@@ -95,7 +96,7 @@ class PWL(object):
         f.write("\tinput [15:0] x,\n")
         f.write("\toutput wire [15:0] y\n")
         f.write(");\n\n")
-        f.write("reg [{:d}:0] slope;\n".format(int(np.log2(self.slope_bound_cnt)+1)))
+        # f.write("reg [{:d}:0] slope;\n".format(int(np.log2(self.slope_bound_cnt)+1)))
         f.write("reg [15:0] bias;\n")
         f.write("reg [15:0] x_delta;\n")
         f.write("reg zero;\n")
@@ -114,7 +115,12 @@ class PWL(object):
         # f.write("end\n")
         #f.write("assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;\n\n")
         f.write("wire [15:0] x_ = (x - x_delta);\n")
-        f.write("assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> slope)) + bias;\n\n")
+        if self.k == 0.125:
+            f.write("assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> 2'b11)) + bias;\n\n")
+        elif self.k == 0.5:
+            f.write("assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> 1'b1)) + bias;\n\n")
+        else:
+            f.write("assign y = ((zero)? 0: ({{16{x_[15]}},x_} )) + bias;\n\n")
         # for i,(bound,_ )in enumerate(self.slope_bound):
         #     f.write("\twire compare_slope_{:d} = ($signed(x) < $signed(16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
         # f.write("\n")
@@ -129,14 +135,14 @@ class PWL(object):
         for i,(bound,slope,bound_n) in enumerate(zip(b,[0,] + s[:-1], [b[0],]+b[:-1])):
             f.write("\tif({{~x[15],x[14:0]}} < (16'h{:s})) begin // {:f} \n".format(to_hex(int((bound*(2**FRACTION_BIT)+(2**15))%(2**16))),bound))
             if slope == 0:
-                f.write("\t\tslope = 16'h{:d};\n".format(0))
+                # f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
             else:
                 try:
-                    f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(slope))),slope))
+                    # f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(slope))),slope))
                     f.write("\t\tzero = {:d};\n".format(0))
                 except:
-                    f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,slope))
+                    # f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,slope))
                     f.write("\t\tzero = {:d};\n".format(1))
             f.write("\t\tx_delta = 16'h{:s};\n".format(to_hex(int(bound_n*(2**FRACTION_BIT)))))
             #f.write("\t\t$display(\"{:d}\");\n".format(i))
@@ -144,10 +150,10 @@ class PWL(object):
             f.write("\tend else ")
         f.write("begin\n")
         if s[-1] != 0:
-            f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(s[-1]))),s[-1]))
+            # f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(s[-1]))),s[-1]))
             f.write("\t\tzero = {:d};\n".format(0))
         else:
-            f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,s[-1]))
+            # f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,s[-1]))
             f.write("\t\tzero = {:d};\n".format(1))
             
         f.write("\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(b[-1]*(2**FRACTION_BIT)))))
@@ -175,7 +181,7 @@ def tanh(x):
     return  (np.exp(x) - np.exp(-x)) / (np.exp(x) + np.exp(-x))
 
 def main():
-    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=4)
+    function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
     
     X = list(np.linspace(-8,8,(2**6)*16+1))
     Y = [function_pwl.origin_function(x) for x in X]
@@ -224,14 +230,11 @@ def test():
     plt.show()
 
 def code_gen():
-    function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
-    print(function_pwl.entry)
+    function_pwl = PWL(tanh,k=0.5,boundary_error = 0.01,shift_bit=2)
     function_pwl.gen_verilog("tanhPWL")
-    function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
-    print(function_pwl.entry)
+    function_pwl = PWL(silu,k=1,boundary_error = 0.01,shift_bit=2)
     function_pwl.gen_verilog("siluPWL")
-    function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
-    print(function_pwl.entry)
+    function_pwl = PWL(sigmoid,k=0.125,boundary_error = 0.01,shift_bit=5)
     function_pwl.gen_verilog("sigmoidPWL")
     
     
