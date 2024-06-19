@@ -1,28 +1,14 @@
 module tanhPWL(
-	input clk,
-	input rst_n,
 	input [15:0] x,
 	output wire [15:0] y
 );
 
-reg signed [4:0] slope, slope_stage_reg;
-reg signed [15:0] bias, bias_stage_reg;
-reg signed [15:0] x_delta, x_stage_reg;
-reg zero, zero_stage_reg;
-always @(posedge clk) begin
-	if(~rst_n) begin
-		slope_stage_reg <= 0;
-		bias_stage_reg <= 0;
-		x_stage_reg <= 0;
-		zero_stage_reg <= 0;
-	end else begin
-		slope_stage_reg <= slope;
-		bias_stage_reg <= bias;
-		x_stage_reg <= (x - x_delta);
-		zero_stage_reg <= zero;
-	end
-end
-assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;
+reg [3:0] slope;
+reg [15:0] bias;
+reg [15:0] x_delta;
+reg zero;
+wire [15:0] x_ = (x - x_delta);
+assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> slope)) + bias;
 
 /**************** Compare and LUT *****************/
 always @(*) begin
@@ -30,22 +16,14 @@ always @(*) begin
 		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf000;
-	end else 	if({~x[15],x[14:0]} < (16'h7b28)) begin // -2.421875 
+	end else 	if({~x[15],x[14:0]} < (16'h7c98)) begin // -1.703125 
 		slope = 16'h0;
 		zero = 1;
 		x_delta = 16'hf000;
-	end else 	if({~x[15],x[14:0]} < (16'h7c48)) begin // -1.859375 
-		slope = 16'h4; // 0.062500
-		zero = 0;
-		x_delta = 16'hfb28;
-	end else 	if({~x[15],x[14:0]} < (16'h7d08)) begin // -1.484375 
-		slope = 16'h3; // 0.125000
-		zero = 0;
-		x_delta = 16'hfc48;
 	end else 	if({~x[15],x[14:0]} < (16'h7dd8)) begin // -1.078125 
 		slope = 16'h2; // 0.250000
 		zero = 0;
-		x_delta = 16'hfd08;
+		x_delta = 16'hfc98;
 	end else 	if({~x[15],x[14:0]} < (16'h7ee8)) begin // -0.546875 
 		slope = 16'h1; // 0.500000
 		zero = 0;
@@ -58,42 +36,34 @@ always @(*) begin
 		slope = 16'h1; // 0.500000
 		zero = 0;
 		x_delta = 16'h118;
-	end else 	if({~x[15],x[14:0]} < (16'h82f8)) begin // 1.484375 
+	end else 	if({~x[15],x[14:0]} < (16'h8368)) begin // 1.703125 
 		slope = 16'h2; // 0.250000
 		zero = 0;
 		x_delta = 16'h228;
-	end else 	if({~x[15],x[14:0]} < (16'h83b8)) begin // 1.859375 
-		slope = 16'h3; // 0.125000
-		zero = 0;
-		x_delta = 16'h2f8;
-	end else 	if({~x[15],x[14:0]} < (16'h84d8)) begin // 2.421875 
-		slope = 16'h4; // 0.062500
-		zero = 0;
-		x_delta = 16'h3b8;
 	end else begin
 		slope = 16'h0; // 0.000000
 		zero = 1;
-		x_delta = 16'h4d8;
+		x_delta = 16'h368;
 	end
 
 	if({~x[15],x[14:0]} < (16'h7000)) begin // -8.000000
 		bias = 16'h0; // 0.000000 
 	end else 	if({~x[15],x[14:0]} < (16'h79d8)) begin // -3.078125
 		bias = 16'hfdfd; // -1.005859 
-	end else 	if({~x[15],x[14:0]} < (16'h7c48)) begin // -1.859375
+	end else 	if({~x[15],x[14:0]} < (16'h7b80)) begin // -2.250000
 		bias = 16'hfe06; // -0.988281 
-	end else 	if({~x[15],x[14:0]} < (16'h7c98)) begin // -1.703125
-		bias = 16'hfe1c; // -0.945312 
-	end else 	if({~x[15],x[14:0]} < (16'h7cf8)) begin // -1.515625
-		bias = 16'hfe14; // -0.960938 
-	end else 	if({~x[15],x[14:0]} < (16'h7d08)) begin // -1.484375
-		bias = 16'hfe1d; // -0.943359 
-	end else 	if({~x[15],x[14:0]} < (16'h7d20)) begin // -1.437500
-		bias = 16'hfe36; // -0.894531 
-	end else 	if({~x[15],x[14:0]} < (16'h7dc0)) begin // -1.125000
-		bias = 16'hfe2e; // -0.910156 
+	end else 	if({~x[15],x[14:0]} < (16'h7c18)) begin // -1.953125
+		bias = 16'hfe0f; // -0.970703 
+	end else 	if({~x[15],x[14:0]} < (16'h7c80)) begin // -1.750000
+		bias = 16'hfe18; // -0.953125 
+	end else 	if({~x[15],x[14:0]} < (16'h7cc0)) begin // -1.625000
+		bias = 16'hfe22; // -0.933594 
+	end else 	if({~x[15],x[14:0]} < (16'h7d38)) begin // -1.390625
+		bias = 16'hfe19; // -0.951172 
+	end else 	if({~x[15],x[14:0]} < (16'h7db0)) begin // -1.156250
+		bias = 16'hfe11; // -0.966797 
 	end else 	if({~x[15],x[14:0]} < (16'h7dd8)) begin // -1.078125
-		bias = 16'hfe38; // -0.890625 
+		bias = 16'hfe1a; // -0.949219 
 	end else 	if({~x[15],x[14:0]} < (16'h7de8)) begin // -1.046875
 		bias = 16'hfe6e; // -0.785156 
 	end else 	if({~x[15],x[14:0]} < (16'h7ea0)) begin // -0.687500
@@ -122,14 +92,18 @@ always @(*) begin
 		bias = 16'h10b; // 0.521484 
 	end else 	if({~x[15],x[14:0]} < (16'h8228)) begin // 1.078125
 		bias = 16'h113; // 0.537109 
-	end else 	if({~x[15],x[14:0]} < (16'h82f8)) begin // 1.484375
+	end else 	if({~x[15],x[14:0]} < (16'h8340)) begin // 1.625000
 		bias = 16'h199; // 0.798828 
+	end else 	if({~x[15],x[14:0]} < (16'h8368)) begin // 1.703125
+		bias = 16'h190; // 0.781250 
 	end else 	if({~x[15],x[14:0]} < (16'h83b8)) begin // 1.859375
-		bias = 16'h1d1; // 0.908203 
-	end else 	if({~x[15],x[14:0]} < (16'h84d8)) begin // 2.421875
+		bias = 16'h1e2; // 0.941406 
+	end else 	if({~x[15],x[14:0]} < (16'h8428)) begin // 2.078125
 		bias = 16'h1eb; // 0.958984 
+	end else 	if({~x[15],x[14:0]} < (16'h84e0)) begin // 2.437500
+		bias = 16'h1f3; // 0.974609 
 	end else begin
-		bias = 16'h1fb; // 0.958984 
+		bias = 16'h1fb; // 0.974609 
 	end
 end
 

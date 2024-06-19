@@ -1,28 +1,14 @@
 module sigmoidPWL(
-	input clk,
-	input rst_n,
 	input [15:0] x,
 	output wire [15:0] y
 );
 
-reg signed [4:0] slope, slope_stage_reg;
-reg signed [15:0] bias, bias_stage_reg;
-reg signed [15:0] x_delta, x_stage_reg;
-reg zero, zero_stage_reg;
-always @(posedge clk) begin
-	if(~rst_n) begin
-		slope_stage_reg <= 0;
-		bias_stage_reg <= 0;
-		x_stage_reg <= 0;
-		zero_stage_reg <= 0;
-	end else begin
-		slope_stage_reg <= slope;
-		bias_stage_reg <= bias;
-		x_stage_reg <= (x - x_delta);
-		zero_stage_reg <= zero;
-	end
-end
-assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;
+reg [4:0] slope;
+reg [15:0] bias;
+reg [15:0] x_delta;
+reg zero;
+wire [15:0] x_ = (x - x_delta);
+assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> slope)) + bias;
 
 /**************** Compare and LUT *****************/
 always @(*) begin
