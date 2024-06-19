@@ -23,7 +23,6 @@ class PWL(object):
         self.shift_bit = shift_bit
         self.slope_bound_cnt = 0
         self.bias_bound_cnt = 0
-        self.shift_bit = shift_bit
         self.run_PWL()
     
     def run_PWL(self):
@@ -93,45 +92,51 @@ class PWL(object):
     def gen_verilog(self, filename = "auto_gen.v"):
         f = open(filename+".v","w")
         f.write(f"module {filename}(\n")
-        f.write("\tinput clk,\n")
-        f.write("\tinput rst_n,\n")
         f.write("\tinput [15:0] x,\n")
         f.write("\toutput wire [15:0] y\n")
         f.write(");\n\n")
-        f.write("reg signed [15:0] bias, bias_stage_reg;\n")
-        f.write("reg signed [15:0] x_delta, x_stage_reg;\n")
-        f.write("reg zero, zero_stage_reg;\n")
-        f.write("always @(posedge clk) begin\n")
-        f.write("\tif(~rst_n) begin\n")
-        f.write("\t\tbias_stage_reg <= 0;\n")
-        f.write("\t\tx_stage_reg <= 0;\n")
-        f.write("\t\tzero_stage_reg <= 0;\n")
-        f.write("\tend else begin\n")
-        f.write("\t\tbias_stage_reg <= bias;\n")
-        f.write("\t\tx_stage_reg <= (x - x_delta);\n")
-        f.write("\t\tzero_stage_reg <= zero;\n")
-        f.write("\tend\n")
-        f.write("end\n")
-        f.write("assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;\n\n")
-        for i,(bound,_ )in enumerate(self.slope_bound):
-            f.write("\twire compare_slope_{:d} = ({{~x[15],x[14:0]}} < (16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
-        f.write("\n")
-        for i,(bound,_ ) in enumerate(self.bias_bound):
-            f.write("\twire compare_bias_{:d} = ({{~x[15],x[14:0]}} < (16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
-        f.write("\n")
+        f.write("reg [{:d}:0] slope;\n".format(int(np.log2(self.slope_bound_cnt)+1)))
+        f.write("reg [15:0] bias;\n")
+        f.write("reg [15:0] x_delta;\n")
+        f.write("reg zero;\n")
+        # f.write("always @(posedge clk) begin\n")
+        # f.write("\tif(~rst_n) begin\n")
+        # f.write("\t\tslope_stage_reg <= 0;\n")
+        # f.write("\t\tbias_stage_reg <= 0;\n")
+        # f.write("\t\tx_stage_reg <= 0;\n")
+        # f.write("\t\tzero_stage_reg <= 0;\n")
+        # f.write("\tend else begin\n")
+        # f.write("\t\tslope_stage_reg <= slope;\n")
+        # f.write("\t\tbias_stage_reg <= bias;\n")
+        # f.write("\t\tx_stage_reg <= (x - x_delta);\n")
+        # f.write("\t\tzero_stage_reg <= zero;\n")
+        # f.write("\tend\n")
+        # f.write("end\n")
+        #f.write("assign y = ((zero_stage_reg)? 0: ({{16{x_stage_reg[15]}},x_stage_reg} >> slope_stage_reg)) + bias_stage_reg;\n\n")
+        f.write("wire [15:0] x_ = (x - x_delta);\n")
+        f.write("assign y = ((zero)? 0: ({{16{x_[15]}},x_} >> slope)) + bias;\n\n")
+        # for i,(bound,_ )in enumerate(self.slope_bound):
+        #     f.write("\twire compare_slope_{:d} = ($signed(x) < $signed(16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        # f.write("\n")
+        # for i,(bound,_ ) in enumerate(self.bias_bound):
+        #     f.write("\twire compare_bias_{:d} = ($signed(x) < $signed(16'h{:s})); // {:f} \n".format(i,to_hex(int(bound*(2**FRACTION_BIT))),bound))
+        # f.write("\n")
         f.write("/**************** Compare and LUT *****************/\n")
         f.write("always @(*) begin\n")
         b = [i[0] for i in self.slope_bound]
         s = [i[1] for i in self.slope_bound]
         i = 0
         for i,(bound,slope,bound_n) in enumerate(zip(b,[0,] + s[:-1], [b[0],]+b[:-1])):
-            f.write("\tif(compare_slope_{:d}) begin // {:f} \n".format(i,bound))
+            f.write("\tif({{~x[15],x[14:0]}} < (16'h{:s})) begin // {:f} \n".format(to_hex(int((bound*(2**FRACTION_BIT)+(2**15))%(2**16))),bound))
             if slope == 0:
+                f.write("\t\tslope = 16'h{:d};\n".format(0))
                 f.write("\t\tzero = {:d};\n".format(1))
             else:
                 try:
+                    f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(slope))),slope))
                     f.write("\t\tzero = {:d};\n".format(0))
                 except:
+                    f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,slope))
                     f.write("\t\tzero = {:d};\n".format(1))
             f.write("\t\tx_delta = 16'h{:s};\n".format(to_hex(int(bound_n*(2**FRACTION_BIT)))))
             #f.write("\t\t$display(\"{:d}\");\n".format(i))
@@ -139,8 +144,10 @@ class PWL(object):
             f.write("\tend else ")
         f.write("begin\n")
         if s[-1] != 0:
+            f.write("\t\tslope = 16'h{:s}; // {:f}\n".format(to_hex(int(-np.log2(s[-1]))),s[-1]))
             f.write("\t\tzero = {:d};\n".format(0))
         else:
+            f.write("\t\tslope = 16'h{:d}; // {:f}\n".format(0,s[-1]))
             f.write("\t\tzero = {:d};\n".format(1))
             
         f.write("\t\tx_delta = 16'h{:s};\n\tend\n\n".format(to_hex(int(b[-1]*(2**FRACTION_BIT)))))
@@ -148,7 +155,7 @@ class PWL(object):
         b = [i[0] for i in self.bias_bound]
         bi = [i[1] for i in self.bias_bound]
         for i,(bound,bias) in enumerate(zip(b,[0,] + bi[:-1])):
-            f.write("\tif(compare_bias_{:d}) begin // {:f}\n".format(i,bound))
+            f.write("\tif({{~x[15],x[14:0]}} < (16'h{:s})) begin // {:f}\n".format(to_hex(int((bound*(2**FRACTION_BIT)+(2**15))%(2**16))),bound))
             f.write("\t\tbias = 16'h{:s}; // {:f} \n".format(to_hex(int(bias*(2**FRACTION_BIT))),bias))
             f.write("\tend else ")
         f.write("begin\n\t\tbias = 16'h{:s}; // {:f} \n\tend\nend\n\n".format(to_hex(int(bi[-1]*(2**FRACTION_BIT))),bias))
@@ -217,12 +224,15 @@ def test():
     plt.show()
 
 def code_gen():
-    # function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
-    # function_pwl.gen_verilog(" tanhPWL")
+    function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=4)
+    print(function_pwl.entry)
+    function_pwl.gen_verilog("tanhPWL")
     function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
-    function_pwl.gen_verilog("original_papper\siluPWL")
-    # function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
-    # function_pwl.gen_verilog("original_papper\sigmoidPWL")
+    print(function_pwl.entry)
+    function_pwl.gen_verilog("siluPWL")
+    function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
+    print(function_pwl.entry)
+    function_pwl.gen_verilog("sigmoidPWL")
     
     
 if __name__ == "__main__":

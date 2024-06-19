@@ -226,10 +226,13 @@ def test():
 
 def code_gen():
     function_pwl = PWL(tanh,boundary_error = 0.01,shift_bit=2)
+    print(function_pwl.entry)
     function_pwl.gen_verilog("tanhPWL")
     function_pwl = PWL(silu,boundary_error = 0.01,shift_bit=2)
+    print(function_pwl.entry)
     function_pwl.gen_verilog("siluPWL")
     function_pwl = PWL(sigmoid,boundary_error = 0.01,shift_bit=5)
+    print(function_pwl.entry)
     function_pwl.gen_verilog("sigmoidPWL")
     
     
